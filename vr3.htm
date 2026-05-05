@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Тур 360 — Редактор v22 VR (Оптимизированный)</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; }
+        html, body { height: 100%; margin: 0; }
+        body { font-family: system-ui, sans-serif; background: #12131c; padding: 20px; color: #eef2ff; display: flex; justify-content: center; align-items: flex-start; }
+        .app { max-width: 1400px; margin: 0 auto; background: #1e1f2e; border-radius: 24px; padding: 20px; border: 1px solid rgba(255,255,255,0.05); width: 100%; }
+        h1 { font-size: 1.6rem; margin: 0 0 4px 0; background: linear-gradient(135deg,#FFB347,#FF7E05); background-clip: text; -webkit-background-clip: text; color: transparent; }
+        .sub { color: #9ca3af; margin-bottom: 20px; border-left: 3px solid #ff8c42; padding-left: 12px; font-size: 0.85rem; }
+        .layout { display: flex; gap: 20px; flex-wrap: wrap; }
+        .panel { background: #15161f; border-radius: 20px; padding: 16px; flex: 1; min-width: 220px; border: 1px solid #2c2e3f; }
+        .panel h3 { margin: 0 0 12px 0; font-size: 1.1rem; }
+        .upload-area { border: 2px dashed #ff8c42; border-radius: 16px; padding: 20px; text-align: center; margin-bottom: 16px; cursor: pointer; background: #101118; color: #ffbb77; font-weight: 500; transition: 0.2s; }
+        .upload-area:hover { background: #1f2132; border-color: #ffaa55; }
+        .pano-list { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+        .pano-item { background: #202233; border-radius: 12px; padding: 8px 12px; cursor: grab; border: 1px solid #32344b; font-size: 0.8rem; display: flex; align-items: center; gap: 8px; transition: 0.15s; }
+        .pano-item:hover { background: #2a2c45; border-color: #ff8c42; }
+        .pano-item:active { cursor: grabbing; }
+        .pano-item.linked { border-color: #2ecc71; background: #1a2e24; }
+        .pano-preview { width: 36px; height: 24px; border-radius: 4px; background-size: cover; background-position: center; flex-shrink: 0; border: 1px solid #3a3c58; }
+        .pano-delete { margin-left: auto; background: none; border: none; color: #ff4757; cursor: pointer; font-size: 16px; padding: 0 4px; opacity: 0.6; transition: 0.2s; }
+        .pano-delete:hover { opacity: 1; }
+        .grid-container { background: #15161f; border-radius: 20px; padding: 16px; flex: 2.5; min-width: 400px; border: 1px solid #2c2e3f; }
+        .grid-wrapper { position: relative; width: 100%; aspect-ratio: 1/1; margin-bottom: 12px; }
+        .grid-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border-radius: 8px; border: 3px solid #333; background: #f5f5f0; }
+        .grid-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: grid; grid-template-columns: repeat(10,1fr); grid-template-rows: repeat(10,1fr); pointer-events: none; z-index: 2; }
+        .cell-hitbox { pointer-events: auto; cursor: crosshair; position: relative; }
+        .cell-hitbox.drop-target { outline: 3px dashed #ff8c42; outline-offset: -2px; z-index: 3; filter: brightness(0.95); }
+        .selected-highlight { outline: 3px solid #ff6600; outline-offset: -1px; z-index: 3; animation: pulse 0.8s infinite; }
+        @keyframes pulse { 0%,100% { outline-color: #ff6600; } 50% { outline-color: #ff9933; } }
+        .settings { background: #15161f; border-radius: 20px; padding: 16px; flex: 1; min-width: 220px; border: 1px solid #2c2e3f; }
+        button { background: #ff8c42; border: none; color: #1e1f2c; font-weight: 600; padding: 10px; border-radius: 40px; cursor: pointer; font-size: 0.85rem; width: 100%; margin-top: 10px; transition: 0.15s; }
+        button:hover { filter: brightness(1.1); }
+        button.secondary { background: #2f324b; color: white; border: 1px solid #484b6e; }
+        button.danger { background: #ff4757; color: white; }
+        input, select { background: #202233; border: 1px solid #3a3c58; padding: 10px 12px; border-radius: 24px; color: #f0f3ff; width: 100%; margin-bottom: 12px; font-size: 0.9rem; }
+        input:focus, select:focus { outline: none; border-color: #ff8c42; }
+        .color-presets { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .color-preset { width: 26px; height: 26px; border-radius: 4px; cursor: pointer; border: 2px solid transparent; transition: 0.15s; }
+        .color-preset:hover { transform: scale(1.15); border-color: white; }
+        hr { border-color: #2f3147; margin: 16px 0; }
+        .room-info { background: #202233; padding: 10px; border-radius: 16px; margin-bottom: 12px; text-align: center; font-size: 0.9rem; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #ff8c42; color: #1e1f2c; padding: 8px 18px; border-radius: 40px; font-weight: bold; z-index: 9999; animation: toast 1.8s ease; white-space: nowrap; pointer-events: none; }
+        @keyframes toast { 0% { opacity: 0; transform: translateX(-50%) translateY(10px); } 15% { opacity: 1; transform: translateX(-50%) translateY(0); } 85% { opacity: 1; } 100% { opacity: 0; transform: translateX(-50%) translateY(-10px); } }
+        .hint { font-size: 11px; color: #7a7c9e; margin-top: 8px; text-align: center; line-height: 1.4; }
+        .counter { display: inline-block; background: #ff8c42; color: #1e1f2c; border-radius: 10px; padding: 1px 7px; font-size: 10px; font-weight: bold; margin-left: 6px; }
+        .progress-bar { width: 100%; height: 4px; background: #2f3147; border-radius: 2px; margin-top: 8px; overflow: hidden; display: none; }
+        .progress-bar .fill { height: 100%; background: #2ecc71; border-radius: 2px; transition: width 0.3s; width: 0%; }
+        .vr-badge { display: inline-block; background: #8b5cf6; color: white; border-radius: 8px; padding: 2px 8px; font-size: 10px; margin-left: 4px; }
+    </style>
+</head>
+<body>
+<div class="app">
+    <h1>🎯 Редактор туров 360° <span class="vr-badge">VR</span></h1>
+    <div class="sub">Выделите область → перетащите панораму → VR тур готов</div>
+    <div class="layout">
+        <div class="panel">
+            <h3>📸 Панорамы <span class="counter" id="panoCount">0</span></h3>
+            <div class="upload-area" id="uploadZone">📂 Загрузить JPG/PNG<br><span style="font-size:11px">или перетащите сразу на план</span></div>
+            <div class="pano-list" id="panoList"><div style="text-align:center;color:#5a5c7e;padding:20px;">✨ Нет панорам</div></div>
+            <div class="hint">💡 Перетащите панораму<br>на выделенную область</div>
+        </div>
+        <div class="grid-container">
+            <h3>🗺️ План помещений <span class="counter" id="roomCount">0</span></h3>
+            <div class="grid-wrapper" id="gridWrapper">
+                <svg class="grid-svg" id="gridSvg" viewBox="0 0 1000 1000" preserveAspectRatio="xMidYMid meet"></svg>
+                <div class="grid-overlay" id="gridOverlay"></div>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button id="clearBtn" class="secondary">🧹 Сброс</button>
+                <button id="deleteBtn" class="danger" style="display:none;">🗑️ Удалить</button>
+            </div>
+            <div class="hint">🖱️ Зажмите и тяните — выделение<br>Shift+клик — добавить ячейку</div>
+        </div>
+        <div class="settings">
+            <h3>⚙️ Комната</h3>
+            <div class="room-info" id="roomInfo">Выберите комнату</div>
+            <input type="text" id="roomName" placeholder="Название">
+            <select id="roomPano"><option value="">— без панорамы —</option></select>
+            <div style="margin-bottom:12px;font-size:0.8rem;color:#9ca3af;">🎨 Цвет заливки:</div>
+            <div class="color-presets">
+                <div class="color-preset" style="background:#e8dcc8" data-color="#e8dcc8"></div>
+                <div class="color-preset" style="background:#d4e6f1" data-color="#d4e6f1"></div>
+                <div class="color-preset" style="background:#d5f5e3" data-color="#d5f5e3"></div>
+                <div class="color-preset" style="background:#fdebd0" data-color="#fdebd0"></div>
+                <div class="color-preset" style="background:#e8daef" data-color="#e8daef"></div>
+                <div class="color-preset" style="background:#fadbd8" data-color="#fadbd8"></div>
+            </div>
+            <input type="color" id="roomColor" value="#e8dcc8" style="height:34px;padding:2px;">
+            <div class="progress-bar" id="progressBar"><div class="fill" id="progressFill"></div></div>
+            <hr>
+            <button id="exportBtn" style="background:#8b5cf6;font-size:1rem;">🥽 Скачать VR тур</button>
+            <div style="font-size:10px;color:#5a5c7e;text-align:center;margin-top:6px;">Photo Sphere Viewer • WebXR • v22 VR</div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    const GRID_SIZE = 10;
+    const CELL_SIZE = 100;
+    const SVG_NS = 'http://www.w3.org/2000/svg';
+
+    const gridWrapper = document.getElementById('gridWrapper');
+    const gridSvg = document.getElementById('gridSvg');
+    const gridOverlay = document.getElementById('gridOverlay');
+    const panoListEl = document.getElementById('panoList');
+    const roomNameEl = document.getElementById('roomName');
+    const roomColorEl = document.getElementById('roomColor');
+    const roomPanoEl = document.getElementById('roomPano');
+    const roomInfoEl = document.getElementById('roomInfo');
+    const deleteBtn = document.getElementById('deleteBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const panoCountEl = document.getElementById('panoCount');
+    const roomCountEl = document.getElementById('roomCount');
+    const uploadZone = document.getElementById('uploadZone');
+    const progressBar = document.getElementById('progressBar');
+    const progressFill = document.getElementById('progressFill');
+
+    let cells = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+    let rooms = [];
+    let nextId = 1;
+    let selectedCells = [];
+    let selectedRoomId = null;
+    let panoramas = [];
+    let isDragging = false;
+    let dragStartRow = -1, dragStartCol = -1, dragEndRow = -1, dragEndCol = -1;
+    let hasMoved = false;
+
+    // ========== ОПТИМИЗАЦИЯ 1: Управление памятью (Blob URL) ==========
+    const blobUrls = new Set();
+    
+    function addBlobUrl(url) {
+        if (url && url.startsWith('blob:')) {
+            blobUrls.add(url);
+        }
+    }
+    
+    function revokeAllBlobUrls() {
+        blobUrls.forEach(url => {
+            try { URL.revokeObjectURL(url); } catch(e) {}
+        });
+        blobUrls.clear();
+    }
+    
+    function safeRevokeUrl(url) {
+        if (url && url.startsWith('blob:') && blobUrls.has(url)) {
+            try { URL.revokeObjectURL(url); } catch(e) {}
+            blobUrls.delete(url);
+        }
+    }
+
+    const svgElementCache = new Map();
+    const roomOutlineCache = new Map();
+    
+    // ========== ОПТИМИЗАЦИЯ 2: Throttle для рендеринга ==========
+    let renderScheduled = false;
+    let frameRequested = false;
+    let pendingGridUpdate = false;
+    let pendingPanoUpdate = false;
+    let dirtyRooms = new Set();
+    
+    function scheduleRender(what) {
+        if (what === 'grid') pendingGridUpdate = true;
+        if (what === 'pano') pendingPanoUpdate = true;
+        
+        if (frameRequested) return;
+        frameRequested = true;
+        
+        requestAnimationFrame(() => {
+            frameRequested = false;
+            const hadGrid = pendingGridUpdate;
+            const hadPano = pendingPanoUpdate;
+            pendingGridUpdate = false;
+            pendingPanoUpdate = false;
+            
+            if (hadGrid) _updateGrid();
+            if (hadPano) _updatePanoPanel();
+        });
+    }
+    
+    // ========== ОПТИМИЗАЦИЯ 3: Debounce для сохранения ==========
+    let saveTimeout = null;
+    function debouncedSaveRoomSettings() {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+            saveRoomSettings();
+            saveTimeout = null;
+        }, 300);
+    }
+
+    // ========== ОПТИМИЗАЦИЯ 4: Кэширование контуров ==========
+    const outlineCache = new Map();
+    
+    function getCachedOutline(room) {
+        const cacheKey = `${room.id}_${room.cells.length}_${room.color}_${room.name}`;
+        if (outlineCache.has(cacheKey)) {
+            return outlineCache.get(cacheKey);
+        }
+        const outline = computeOutline(room);
+        outlineCache.set(cacheKey, outline);
+        
+        // Автоочистка кэша через 5 секунд (если не используется)
+        setTimeout(() => {
+            if (outlineCache.get(cacheKey) === outline) {
+                outlineCache.delete(cacheKey);
+            }
+        }, 5000);
+        
+        return outline;
+    }
+    
+    function invalidateRoomCache(roomId) {
+        roomOutlineCache.delete(roomId);
+        // Очищаем кэш контуров для этой комнаты
+        for (const key of outlineCache.keys()) {
+            if (key.startsWith(`${roomId}_`)) {
+                outlineCache.delete(key);
+            }
+        }
+        markRoomDirty(roomId);
+    }
+
+    let svgBgRect, svgGridGroup, svgRoomsGroup, svgSelectionRect;
+    let cellHitboxes = [];
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function toast(m) {
+        const t = document.createElement('div');
+        t.className = 'toast';
+        t.textContent = m;
+        document.body.appendChild(t);
+        setTimeout(() => t.remove(), 1800);
+    }
+
+    function darkenColor(hex, a = 0.35) {
+        const n = parseInt(hex.replace('#', ''), 16);
+        const r = Math.max(0, Math.floor(((n >> 16) & 0xFF) * (1 - a)));
+        const g = Math.max(0, Math.floor(((n >> 8) & 0xFF) * (1 - a)));
+        const b = Math.max(0, Math.floor((n & 0xFF) * (1 - a)));
+        return `rgb(${r},${g},${b})`;
+    }
+
+    function computeOutlineRaw(cellsArr, cellSz, padX, padY) {
+        if (!cellsArr.length) return '';
+        const cellSet = new Set(cellsArr.map(c => `${c.r},${c.c}`));
+        const edges = [];
+        const dirs = [
+            { dr: -1, dc: 0, s: 'top' },
+            { dr: 0, dc: 1, s: 'right' },
+            { dr: 1, dc: 0, s: 'bottom' },
+            { dr: 0, dc: -1, s: 'left' }
+        ];
+        for (const { r, c } of cellsArr) {
+            for (const { dr, dc, s } of dirs) {
+                if (!cellSet.has(`${r+dr},${c+dc}`)) {
+                    const x1 = padX + c * cellSz;
+                    const y1 = padY + r * cellSz;
+                    const x2 = padX + (c+1) * cellSz;
+                    const y2 = padY + (r+1) * cellSz;
+                    if (s === 'top') edges.push({ x1, y1, x2, y2: y1 });
+                    else if (s === 'right') edges.push({ x1: x2, y1, x2, y2 });
+                    else if (s === 'bottom') edges.push({ x1: x2, y1: y2, x2: x1, y2 });
+                    else if (s === 'left') edges.push({ x1, y1: y2, x2: x1, y2: y1 });
+                }
+            }
+        }
+        if (!edges.length) return '';
+        const pointMap = new Map();
+        const pk = (x, y) => `${x.toFixed(4)},${y.toFixed(4)}`;
+        for (const e of edges) {
+            const k1 = pk(e.x1, e.y1), k2 = pk(e.x2, e.y2);
+            if (!pointMap.has(k1)) pointMap.set(k1, []);
+            if (!pointMap.has(k2)) pointMap.set(k2, []);
+            pointMap.get(k1).push({ x: e.x2, y: e.y2 });
+            pointMap.get(k2).push({ x: e.x1, y: e.y1 });
+        }
+        const visitedEdges = new Set();
+        const ek = (x1, y1, x2, y2) => `${Math.min(x1,x2).toFixed(4)},${Math.min(y1,y2).toFixed(4)}-${Math.max(x1,x2).toFixed(4)},${Math.max(y1,y2).toFixed(4)}`;
+        const polygons = [];
+        for (const [startKey, nbrs] of pointMap) {
+            const [sx, sy] = startKey.split(',').map(Number);
+            for (const next of nbrs) {
+                const key = ek(sx, sy, next.x, next.y);
+                if (visitedEdges.has(key)) continue;
+                const poly = [{ x: sx, y: sy }];
+                let curr = next, prev = { x: sx, y: sy };
+                visitedEdges.add(key);
+                let closed = false, safety = 0;
+                while (safety < edges.length * 2) {
+                    poly.push(curr);
+                    const nbrList = pointMap.get(pk(curr.x, curr.y)) || [];
+                    let found = false;
+                    for (const nxt of nbrList) {
+                        const nk = ek(curr.x, curr.y, nxt.x, nxt.y);
+                        if (!visitedEdges.has(nk) && !(Math.abs(nxt.x-prev.x)<0.001 && Math.abs(nxt.y-prev.y)<0.001)) {
+                            visitedEdges.add(nk); prev = curr; curr = nxt; found = true; break;
+                        }
+                    }
+                    if (!found) {
+                        for (const nxt of nbrList) {
+                            const nk = ek(curr.x, curr.y, nxt.x, nxt.y);
+                            if (!visitedEdges.has(nk)) {
+                                visitedEdges.add(nk); prev = curr; curr = nxt; found = true; break;
+                            }
+                        }
+                    }
+                    if (!found) break;
+                    if (Math.abs(curr.x-sx)<0.001 && Math.abs(curr.y-sy)<0.001) { closed = true; break; }
+                    safety++;
+                }
+                if (closed && poly.length >= 4) polygons.push(poly);
+            }
+        }
+        let pathD = '';
+        for (const poly of polygons) {
+            if (poly.length < 3) continue;
+            let d = `M ${poly[0].x.toFixed(1)} ${poly[0].y.toFixed(1)}`;
+            for (let i = 1; i < poly.length; i++) d += ` L ${poly[i].x.toFixed(1)} ${poly[i].y.toFixed(1)}`;
+            d += ' Z'; pathD += d + ' ';
+        }
+        return pathD.trim();
+    }
+
+    function getLabelPosition(cellsArr, cellSz, padX, padY) {
+        const rows = cellsArr.map(c => c.r), cols = cellsArr.map(c => c.c);
+        const minR = Math.min(...rows), maxR = Math.max(...rows), minC = Math.min(...cols), maxC = Math.max(...cols);
+        const bw = (maxC - minC + 1) * cellSz, bh = (maxR - minR + 1) * cellSz;
+        const sumX = cellsArr.reduce((s, {c}) => s + padX + (c + 0.5) * cellSz, 0);
+        const sumY = cellsArr.reduce((s, {r}) => s + padY + (r + 0.5) * cellSz, 0);
+        let cx = sumX / cellsArr.length, cy = sumY / cellsArr.length;
+        const margin = Math.min(bw, bh) * 0.25;
+        cx = Math.max(padX + minC * cellSz + margin, Math.min(padX + (maxC + 1) * cellSz - margin, cx));
+        cy = Math.max(padY + minR * cellSz + margin, Math.min(padY + (maxR + 1) * cellSz - margin, cy));
+        return { cx, cy, bw, bh };
+    }
+
+    function computeOutline(room) {
+        const pathD = computeOutlineRaw(room.cells, CELL_SIZE, 0, 0);
+        const label = getLabelPosition(room.cells, CELL_SIZE, 0, 0);
+        return { pathD, label };
+    }
+
+    function getRoomOutlineForExport(room, cellSz, pad) {
+        const pathD = computeOutlineRaw(room.cells, cellSz, pad, pad);
+        const label = getLabelPosition(room.cells, cellSz, pad, pad);
+        return { pathD, label };
+    }
+
+    function getRoomOutline(room) {
+        let cached = roomOutlineCache.get(room.id);
+        if (!cached) { 
+            cached = computeOutline(room); 
+            roomOutlineCache.set(room.id, cached); 
+        }
+        return cached;
+    }
+
+    function updateTextSize(room, label, textElement) {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const maxWidth = label.bw * 0.8, maxHeight = label.bh * 0.5;
+        let fontSize = Math.min(maxHeight, 24);
+        const minFontSize = 8;
+        ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
+        let textWidth = ctx.measureText(room.name).width;
+        while (textWidth > maxWidth && fontSize > minFontSize) {
+            fontSize -= 1;
+            ctx.font = `600 ${fontSize}px system-ui, sans-serif`;
+            textWidth = ctx.measureText(room.name).width;
+        }
+        fontSize = Math.max(minFontSize, Math.min(fontSize, 24));
+        textElement.setAttribute('font-size', fontSize);
+        textElement.setAttribute('x', label.cx);
+        textElement.setAttribute('y', label.cy);
+        textElement.textContent = room.name;
+    }
+
+    function createAndAppendText(room, label, elements) {
+        const text = document.createElementNS(SVG_NS, 'text');
+        text.setAttribute('fill', '#333');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('dominant-baseline', 'central');
+        text.setAttribute('font-family', 'system-ui, sans-serif');
+        text.setAttribute('pointer-events', 'none');
+        updateTextSize(room, label, text);
+        svgRoomsGroup.appendChild(text);
+        elements.text = text;
+    }
+
+    function updateRoomSvgElement(room) {
+        if (!room.cells.length) {
+            const elements = svgElementCache.get(room.id);
+            if (elements) {
+                if (elements.path) elements.path.remove();
+                if (elements.text) elements.text.remove();
+                svgElementCache.delete(room.id);
+            }
+            return;
+        }
+        const { pathD, label } = getCachedOutline(room);
+        let elements = svgElementCache.get(room.id);
+        
+        if (elements) {
+            if (elements.path && pathD) {
+                elements.path.setAttribute('d', pathD);
+                elements.path.setAttribute('fill', room.color);
+                elements.path.setAttribute('stroke', darkenColor(room.color));
+            }
+            if (elements.text && label && label.bw > 0) {
+                updateTextSize(room, label, elements.text);
+                elements.text.style.display = '';
+            } else if (elements.text && (!label || label.bw <= 0)) {
+                elements.text.style.display = 'none';
+            } else if (!elements.text && label && label.bw > 0) {
+                createAndAppendText(room, label, elements);
+            }
+        } else {
+            elements = {};
+            if (pathD) {
+                const path = document.createElementNS(SVG_NS, 'path');
+                path.setAttribute('d', pathD);
+                path.setAttribute('fill', room.color);
+                path.setAttribute('stroke', darkenColor(room.color));
+                path.setAttribute('stroke-width', '4');
+                path.setAttribute('stroke-linejoin', 'round');
+                svgRoomsGroup.appendChild(path);
+                elements.path = path;
+            }
+            if (label && label.bw > 0) {
+                createAndAppendText(room, label, elements);
+            }
+            svgElementCache.set(room.id, elements);
+        }
+    }
+
+    function markRoomDirty(roomId) {
+        dirtyRooms.add(roomId);
+        scheduleRender('grid');
+    }
+
+    function _updateGrid() {
+        updateSelectionDisplay();
+        if (dirtyRooms.size > 0) {
+            for (const roomId of dirtyRooms) {
+                const room = rooms.find(r => r.id === roomId);
+                if (room) updateRoomSvgElement(room);
+                else {
+                    const elements = svgElementCache.get(roomId);
+                    if (elements) {
+                        if (elements.path) elements.path.remove();
+                        if (elements.text) elements.text.remove();
+                        svgElementCache.delete(roomId);
+                    }
+                }
+            }
+            dirtyRooms.clear();
+        }
+        roomCountEl.textContent = rooms.length;
+    }
+
+    function initSvg() {
+        gridSvg.innerHTML = '';
+        svgElementCache.clear();
+        dirtyRooms.clear();
+        
+        svgBgRect = document.createElementNS(SVG_NS, 'rect');
+        svgBgRect.setAttribute('width', '1000');
+        svgBgRect.setAttribute('height', '1000');
+        svgBgRect.setAttribute('fill', '#fafaf5');
+        svgBgRect.setAttribute('rx', '8');
+        gridSvg.appendChild(svgBgRect);
+        
+        svgGridGroup = document.createElementNS(SVG_NS, 'g');
+        for (let i = 0; i <= GRID_SIZE; i++) {
+            const hl = document.createElementNS(SVG_NS, 'line');
+            hl.setAttribute('x1', '0'); hl.setAttribute('y1', i * CELL_SIZE);
+            hl.setAttribute('x2', GRID_SIZE * CELL_SIZE); hl.setAttribute('y2', i * CELL_SIZE);
+            hl.setAttribute('stroke', '#ddd'); hl.setAttribute('stroke-width', '1');
+            svgGridGroup.appendChild(hl);
+            const vl = document.createElementNS(SVG_NS, 'line');
+            vl.setAttribute('x1', i * CELL_SIZE); vl.setAttribute('y1', '0');
+            vl.setAttribute('x2', i * CELL_SIZE); vl.setAttribute('y2', GRID_SIZE * CELL_SIZE);
+            vl.setAttribute('stroke', '#ddd'); vl.setAttribute('stroke-width', '1');
+            svgGridGroup.appendChild(vl);
+        }
+        gridSvg.appendChild(svgGridGroup);
+        
+        svgRoomsGroup = document.createElementNS(SVG_NS, 'g');
+        gridSvg.appendChild(svgRoomsGroup);
+        
+        svgSelectionRect = document.createElementNS(SVG_NS, 'rect');
+        svgSelectionRect.setAttribute('fill', 'none');
+        svgSelectionRect.setAttribute('stroke', '#ff6600');
+        svgSelectionRect.setAttribute('stroke-width', '5');
+        svgSelectionRect.setAttribute('stroke-dasharray', '12,6');
+        svgSelectionRect.setAttribute('rx', '4');
+        svgSelectionRect.style.display = 'none';
+        gridSvg.appendChild(svgSelectionRect);
+    }
+
+    // ========== ОПТИМИЗАЦИЯ 5: requestAnimationFrame для touch ==========
+    let touchMoveScheduled = false;
+    let pendingTouchMove = null;
+    
+    function initHitboxes() {
+        gridOverlay.innerHTML = '';
+        cellHitboxes = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const div = document.createElement('div');
+                div.className = 'cell-hitbox';
+                div.dataset.row = r;
+                div.dataset.col = c;
+                gridOverlay.appendChild(div);
+                cellHitboxes[r][c] = div;
+                
+                div.addEventListener('dragover', e => { e.preventDefault(); div.classList.add('drop-target'); });
+                div.addEventListener('dragleave', () => div.classList.remove('drop-target'));
+                div.addEventListener('drop', e => {
+                    e.preventDefault();
+                    div.classList.remove('drop-target');
+                    const name = e.dataTransfer.getData('text/plain');
+                    const pano = panoramas.find(p => p.name === name);
+                    if (pano) {
+                        if (!selectedCells.length) selectedCells = [{ r, c }];
+                        createRoom(pano);
+                    }
+                });
+                div.addEventListener('mousedown', e => {
+                    if (e.button !== 0) return;
+                    e.preventDefault();
+                    isDragging = true; hasMoved = false;
+                    dragStartRow = r; dragStartCol = c; dragEndRow = r; dragEndCol = c;
+                    if (e.shiftKey) {
+                        const idx = selectedCells.findIndex(sc => sc.r === r && sc.c === c);
+                        if (idx >= 0) selectedCells.splice(idx, 1);
+                        else selectedCells.push({ r, c });
+                        isDragging = false;
+                        updateSelectionDisplay();
+                    } else { selectedCells = [{ r, c }]; updateSelectionDisplay(); }
+                });
+                div.addEventListener('mouseenter', () => {
+                    if (!isDragging) return;
+                    const rr = parseInt(div.dataset.row), cc = parseInt(div.dataset.col);
+                    if (dragEndRow !== rr || dragEndCol !== cc) {
+                        dragEndRow = rr; dragEndCol = cc; hasMoved = true;
+                        selectedCells = getCellsInRect(dragStartRow, dragStartCol, dragEndRow, dragEndCol);
+                        updateSelectionDisplay();
+                    }
+                });
+            }
+        }
+        
+        // Оптимизированные touch-события
+        gridOverlay.addEventListener('touchstart', e => {
+            const t = e.touches[0];
+            const el = document.elementFromPoint(t.clientX, t.clientY);
+            if (el && el.classList.contains('cell-hitbox')) {
+                e.preventDefault();
+                const r = parseInt(el.dataset.row), c = parseInt(el.dataset.col);
+                isDragging = true; hasMoved = false;
+                dragStartRow = r; dragStartCol = c; dragEndRow = r; dragEndCol = c;
+                selectedCells = [{ r, c }]; updateSelectionDisplay();
+            }
+        }, { passive: false });
+        
+        gridOverlay.addEventListener('touchmove', e => {
+            if (!isDragging) return;
+            e.preventDefault();
+            
+            if (touchMoveScheduled) {
+                pendingTouchMove = e;
+                return;
+            }
+            
+            touchMoveScheduled = true;
+            requestAnimationFrame(() => {
+                const ev = pendingTouchMove || e;
+                pendingTouchMove = null;
+                
+                const t = ev.touches[0];
+                const el = document.elementFromPoint(t.clientX, t.clientY);
+                if (el && el.classList.contains('cell-hitbox')) {
+                    const rr = parseInt(el.dataset.row), cc = parseInt(el.dataset.col);
+                    if (!isNaN(rr) && !isNaN(cc) && (dragEndRow !== rr || dragEndCol !== cc)) {
+                        dragEndRow = rr; dragEndCol = cc; hasMoved = true;
+                        selectedCells = getCellsInRect(dragStartRow, dragStartCol, dragEndRow, dragEndCol);
+                        updateSelectionDisplay();
+                    }
+                }
+                
+                touchMoveScheduled = false;
+            });
+        }, { passive: false });
+        
+        gridOverlay.addEventListener('touchend', () => {
+            if (!isDragging) return; 
+            isDragging = false;
+            if (!hasMoved && dragStartRow >= 0 && dragStartCol >= 0) {
+                const roomId = cells[dragStartRow]?.[dragStartCol];
+                if (roomId) selectRoom(roomId); else deselectRoom();
+            }
+            dragStartRow = dragStartCol = dragEndRow = dragEndCol = -1; 
+            hasMoved = false;
+            touchMoveScheduled = false;
+            pendingTouchMove = null;
+        });
+    }
+
+    window.addEventListener('mouseup', () => {
+        if (!isDragging) return; isDragging = false;
+        if (!hasMoved && dragStartRow >= 0 && dragStartCol >= 0) {
+            const roomId = cells[dragStartRow]?.[dragStartCol];
+            if (roomId) selectRoom(roomId); else deselectRoom();
+        }
+        dragStartRow = dragStartCol = dragEndRow = dragEndCol = -1; hasMoved = false;
+    });
+
+    document.addEventListener('mouseleave', () => {
+        if (isDragging) { isDragging = false; dragStartRow = dragStartCol = dragEndRow = dragEndCol = -1; hasMoved = false; }
+    });
+
+    function getCellsInRect(r1, c1, r2, c2) {
+        const rect = [], minR = Math.min(r1, r2), maxR = Math.max(r1, r2), minC = Math.min(c1, c2), maxC = Math.max(c1, c2);
+        for (let r = minR; r <= maxR; r++) for (let c = minC; c <= maxC; c++) rect.push({ r, c });
+        return rect;
+    }
+
+    function updateSelectionDisplay() {
+        for (let r = 0; r < GRID_SIZE; r++) {
+            for (let c = 0; c < GRID_SIZE; c++) {
+                const isSel = selectedCells.some(sc => sc.r === r && sc.c === c);
+                const div = cellHitboxes[r]?.[c];
+                if (div) { if (isSel) div.classList.add('selected-highlight'); else div.classList.remove('selected-highlight'); }
+            }
+        }
+        if (selectedCells.length > 0) {
+            const rows = selectedCells.map(c => c.r), cols = selectedCells.map(c => c.c);
+            svgSelectionRect.setAttribute('x', Math.min(...cols) * CELL_SIZE);
+            svgSelectionRect.setAttribute('y', Math.min(...rows) * CELL_SIZE);
+            svgSelectionRect.setAttribute('width', (Math.max(...cols) - Math.min(...cols) + 1) * CELL_SIZE);
+            svgSelectionRect.setAttribute('height', (Math.max(...rows) - Math.min(...rows) + 1) * CELL_SIZE);
+            svgSelectionRect.style.display = '';
+        } else svgSelectionRect.style.display = 'none';
+    }
+
+    function _updatePanoPanel() {
+        panoListEl.innerHTML = '';
+        if (!panoramas.length) {
+            panoListEl.innerHTML = '<div style="text-align:center;color:#5a5c7e;padding:20px;">✨ Нет панорам</div>';
+            panoCountEl.textContent = '0';
+        } else {
+            panoCountEl.textContent = panoramas.length;
+            panoramas.forEach(p => {
+                const linked = rooms.find(r => r.panoFile === p.name);
+                const div = document.createElement('div');
+                div.className = 'pano-item'; if (linked) div.classList.add('linked'); div.draggable = true;
+                const previewUrl = p.thumbnailUrl || p.dataUrl;
+                div.innerHTML = `<div class="pano-preview" style="background-image:url('${previewUrl}')"></div><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.8rem;">${escapeHtml(p.name)}${linked ? ' 🔗' + escapeHtml(linked.name) : ''}</span><span class="pano-delete">×</span>`;
+                div.querySelector('.pano-delete').addEventListener('click', e => { e.stopPropagation(); deletePanorama(p.name); });
+                div.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', p.name); div.style.opacity = '0.5'; });
+                div.addEventListener('dragend', () => { div.style.opacity = '1'; });
+                div.addEventListener('click', () => {
+                    if (selectedRoomId) {
+                        const room = rooms.find(r => r.id === selectedRoomId);
+                        if (room) { room.panoFile = p.name; room.panoDataUrl = p.dataUrl; selectRoom(selectedRoomId); scheduleRender('pano'); }
+                    } else if (selectedCells.length && !rooms.some(r => r.panoFile === p.name && r.cells.some(c => selectedCells.some(sc => sc.r === c.r && sc.c === c.c)))) {
+                        createRoom(p);
+                    } else toast('⚠️ Выделите область или выберите комнату');
+                });
+                panoListEl.appendChild(div);
+            });
+        }
+        const curVal = roomPanoEl.value;
+        roomPanoEl.innerHTML = '<option value="">— без панорамы —</option>';
+        panoramas.forEach(p => { const o = document.createElement('option'); o.value = p.name; o.textContent = p.name.substring(0, 35); roomPanoEl.appendChild(o); });
+        roomPanoEl.value = curVal;
+    }
+
+    function selectRoom(id) {
+        selectedRoomId = id;
+        const room = rooms.find(r => r.id === id);
+        if (!room) return;
+        roomNameEl.value = room.name; roomColorEl.value = room.color; roomPanoEl.value = room.panoFile || '';
+        roomInfoEl.innerHTML = '🏠 <b>' + escapeHtml(room.name) + '</b> (' + room.cells.length + ' яч.)' + (room.panoFile ? ' 🎥' : '');
+        deleteBtn.style.display = 'block';
+        selectedCells = [...room.cells]; updateSelectionDisplay();
+        setTimeout(() => { if (selectedRoomId === id) { selectedCells = []; updateSelectionDisplay(); } }, 600);
+    }
+
+    function deselectRoom() {
+        selectedRoomId = null; deleteBtn.style.display = 'none';
+        roomInfoEl.innerHTML = 'Выберите комнату'; roomNameEl.value = ''; roomColorEl.value = '#e8dcc8'; roomPanoEl.value = '';
+        selectedCells = []; updateSelectionDisplay();
+    }
+
+    function createRoom(pano) {
+        if (!selectedCells.length) return toast('⚠️ Выделите область');
+        const occupied = selectedCells.filter(sc => cells[sc.r]?.[sc.c] !== null);
+        if (occupied.length) {
+            const names = [...new Set(occupied.map(sc => { const rm = rooms.find(r => r.id === cells[sc.r][sc.c]); return rm ? '"' + rm.name + '"' : ''; }))].join(', ');
+            if (!confirm('Перезаписать ' + occupied.length + ' ячеек из: ' + names + '?')) return;
+        }
+        const name = pano.name.replace(/\.[^.]+$/, '').replace(/[_-]/g, ' ').trim();
+        const room = { id: nextId++, name: name || 'Комната ' + (nextId - 1), color: 'hsl(' + ((nextId * 47 + 15) % 360) + ', 35%, 85%)', panoFile: pano.name, panoDataUrl: pano.dataUrl, cells: [...selectedCells] };
+        selectedCells.forEach(({ r, c }) => {
+            const oldId = cells[r]?.[c];
+            if (oldId) { const old = rooms.find(rm => rm.id === oldId); if (old) { old.cells = old.cells.filter(cl => !(cl.r === r && cl.c === c)); invalidateRoomCache(oldId); if (!old.cells.length) { rooms = rooms.filter(rm => rm.id !== oldId); markRoomDirty(oldId); } } }
+            cells[r][c] = room.id;
+        });
+        invalidateRoomCache(room.id); markRoomDirty(room.id); rooms.push(room);
+        selectedRoomId = room.id; selectedCells = []; deleteBtn.style.display = 'block';
+        selectRoom(room.id); scheduleRender('grid'); scheduleRender('pano');
+        toast('✅ "' + room.name + '" создана');
+    }
+
+    function deleteSelectedRoom() {
+        if (!selectedRoomId) return toast('⚠️ Выберите комнату');
+        const room = rooms.find(r => r.id === selectedRoomId);
+        if (!room || !confirm('Удалить "' + room.name + '"?')) return;
+        invalidateRoomCache(room.id);
+        for (let r = 0; r < GRID_SIZE; r++) for (let c = 0; c < GRID_SIZE; c++) if (cells[r]?.[c] === selectedRoomId) cells[r][c] = null;
+        rooms = rooms.filter(r => r.id !== selectedRoomId); markRoomDirty(selectedRoomId);
+        deselectRoom(); scheduleRender('grid'); scheduleRender('pano'); toast('🗑️ Удалена');
+    }
+
+    function clearAll() {
+        if (!confirm('Сбросить всё?')) return;
+        panoramas.forEach(p => { 
+            if (p.thumbnailUrl?.startsWith('blob:')) safeRevokeUrl(p.thumbnailUrl);
+            if (p.dataUrl?.startsWith('blob:')) safeRevokeUrl(p.dataUrl);
+        });
+        revokeAllBlobUrls();
+        cells = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(null));
+        rooms.forEach(r => { invalidateRoomCache(r.id); markRoomDirty(r.id); });
+        rooms = []; nextId = 1; panoramas = []; deselectRoom(); scheduleRender('grid'); scheduleRender('pano'); toast('🧹 Сброшено');
+    }
+
+    function saveRoomSettings() {
+        if (!selectedRoomId) return;
+        const room = rooms.find(r => r.id === selectedRoomId);
+        if (!room) return;
+        const newName = roomNameEl.value.trim(), oldColor = room.color;
+        if (newName) room.name = newName;
+        room.color = roomColorEl.value;
+        const pn = roomPanoEl.value;
+        if (pn) { const p = panoramas.find(pp => pp.name === pn); if (p) { room.panoFile = p.name; room.panoDataUrl = p.dataUrl; } }
+        else { room.panoFile = null; room.panoDataUrl = null; }
+        if (oldColor !== room.color || newName !== room.name) invalidateRoomCache(room.id);
+        selectRoom(room.id); scheduleRender('grid'); scheduleRender('pano');
+    }
+
+    async function createThumbnail(dataUrl, w, h) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => { 
+                const c = document.createElement('canvas'); 
+                c.width = w; 
+                c.height = h; 
+                const ctx = c.getContext('2d'); 
+                if (!ctx) return reject(new Error('Canvas')); 
+                ctx.drawImage(img, 0, 0, w, h); 
+                c.toBlob(blob => {
+                    if (blob) {
+                        const url = URL.createObjectURL(blob);
+                        addBlobUrl(url);
+                        resolve(url);
+                    } else reject(new Error('Blob'));
+                }, 'image/jpeg', 0.7);
+            };
+            img.onerror = () => reject(new Error('Load')); 
+            img.src = dataUrl;
+        });
+    }
+
+    async function addPanorama(file, url) {
+        if (file.size > 100 * 1024 * 1024) return toast('❌ Файл слишком большой (>100MB)');
+        if (file.size > 15 * 1024 * 1024 && !confirm('⚠️ ' + (file.size / 1024 / 1024).toFixed(1) + 'MB. Продолжить?')) return;
+        let name = file.name, n = 1;
+        while (panoramas.some(p => p.name === name)) { const dot = name.lastIndexOf('.'); name = name.slice(0, dot) + ' (' + n + ')' + name.slice(dot); n++; }
+        let thumbnailUrl = url;
+        // Создаем эскиз только для больших файлов
+        if (file.size > 100 * 1024) {
+            try { 
+                thumbnailUrl = await createThumbnail(url, 72, 48);
+            } catch (e) { console.warn('Thumbnail failed', e); }
+        }
+        panoramas.push({ name, file, dataUrl: url, thumbnailUrl });
+        scheduleRender('pano'); toast('📸 "' + name + '"');
+    }
+
+    function deletePanorama(name) {
+        const used = rooms.filter(r => r.panoFile === name);
+        if (used.length && !confirm('Используется в: ' + used.map(r => r.name).join(', ') + '. Удалить?')) return;
+        used.forEach(r => { r.panoFile = null; r.panoDataUrl = null; invalidateRoomCache(r.id); });
+        const pd = panoramas.find(p => p.name === name);
+        if (pd) { 
+            if (pd.thumbnailUrl?.startsWith('blob:')) safeRevokeUrl(pd.thumbnailUrl);
+            if (pd.dataUrl?.startsWith('blob:')) safeRevokeUrl(pd.dataUrl);
+        }
+        panoramas = panoramas.filter(p => p.name !== name);
+        if (selectedRoomId) selectRoom(selectedRoomId); scheduleRender('grid'); scheduleRender('pano'); toast('🗑️ Панорама удалена');
+    }
+
+    function convertToWebP(dataUrl, quality = 0.75) {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.width, h = img.height;
+                if (w > 4096 || h > 2048) { const r = Math.min(4096/w, 2048/h); w = Math.round(w*r); h = Math.round(h*r); }
+                const c = document.createElement('canvas'); c.width = w; c.height = h; const ctx = c.getContext('2d'); if (!ctx) return reject(new Error('Canvas'));
+                ctx.drawImage(img, 0, 0, w, h);
+                c.toBlob(blob => {
+                    if (!blob) return reject(new Error('WebP'));
+                    const reader = new FileReader();
+                    reader.onload = () => resolve({ dataUrl: reader.result, size: blob.size, width: w, height: h });
+                    reader.onerror = () => reject(new Error('Reader'));
+                    reader.readAsDataURL(blob);
+                }, 'image/webp', quality);
+            };
+            img.onerror = () => reject(new Error('Load')); img.src = dataUrl;
+        });
+    }
+
+    // ========== ОПТИМИЗАЦИЯ 6: Параллельная конвертация WebP ==========
+    async function exportTour() {
+        const withPano = rooms.filter(r => r.panoDataUrl && r.cells.length);
+        if (!withPano.length) return toast('⚠️ Привяжите панорамы к комнатам');
+        
+        exportBtn.disabled = true; exportBtn.textContent = '⏳ Конвертация...';
+        progressBar.style.display = 'block'; progressFill.style.width = '0%';
+        
+        try {
+            const BATCH_SIZE = 2; // Конвертируем по 2 панорамы одновременно
+            const converted = [];
+            
+            for (let i = 0; i < withPano.length; i += BATCH_SIZE) {
+                const batch = withPano.slice(i, i + BATCH_SIZE);
+                const batchPromises = batch.map(async (room, idx) => {
+                    try {
+                        if (!room.panoDataUrl?.startsWith('data:')) {
+                            console.warn('Пропуск:', room.name);
+                            return null;
+                        }
+                        const result = await convertToWebP(room.panoDataUrl, 0.75);
+                        return { id: room.id, name: room.name, dataUrl: result.dataUrl, width: result.width, height: result.height };
+                    } catch (e) {
+                        console.warn('WebP fallback для ' + room.name, e);
+                        return { id: room.id, name: room.name, dataUrl: room.panoDataUrl, width: 2048, height: 1024 };
+                    }
+                });
+                
+                const batchResults = await Promise.all(batchPromises);
+                for (const res of batchResults) {
+                    if (res) converted.push(res);
+                }
+                
+                const progress = ((i + batch.length) / withPano.length) * 50;
+                progressFill.style.width = Math.round(progress) + '%';
+                await new Promise(r => setTimeout(r, 10)); // Даем喘息 UI
+            }
+            
+            if (!converted.length) throw new Error('Нет валидных панорам');
+            
+            progressFill.style.width = '60%'; await new Promise(r => setTimeout(r, 0));
+
+            const cellSz = 28, pad = 12, svgW = GRID_SIZE * cellSz + pad * 2, svgH = GRID_SIZE * cellSz + pad * 2;
+            let shapesSvg = '';
+            for (const room of rooms) {
+                if (!room.cells.length) continue;
+                const { pathD, label } = getRoomOutlineForExport(room, cellSz, pad);
+                if (pathD) shapesSvg += `<path d="${pathD}" fill="${room.color}" stroke="${darkenColor(room.color)}" stroke-width="1.5" stroke-linejoin="round" class="room-shape" data-room="${room.id}"/>`;
+                if (label?.bw > 0) { const fs = Math.max(4, Math.min(label.bw, label.bh) * 0.09); shapesSvg += `<text x="${label.cx}" y="${label.cy}" text-anchor="middle" dominant-baseline="central" font-size="${fs}" font-weight="600" fill="#555" pointer-events="none" font-family="system-ui,sans-serif">${escapeHtml(room.name)}</text>`; }
+            }
+            const svgString = `<svg xmlns="${SVG_NS}" viewBox="0 0 ${svgW} ${svgH}" width="100%" height="100%"><rect width="${svgW}" height="${svgH}" fill="#fafaf5" rx="10"/>${shapesSvg}</svg>`;
+            const encoder = new TextEncoder(); const bytes = encoder.encode(svgString);
+            let binary = ''; for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+            const svgBase64 = btoa(binary);
+
+            progressFill.style.width = '80%'; await new Promise(r => setTimeout(r, 0));
+            const roomsJson = JSON.stringify(converted);
+
+            const html = `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>VR Тур 360</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.min.css"/>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{overflow:hidden;font-family:system-ui,sans-serif;background:#000}
+#viewer{width:100vw;height:100vh;position:fixed;top:0;left:0}
+#plan-wrap{position:fixed;bottom:16px;right:16px;z-index:100;background:rgba(255,255,255,0.2);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-radius:16px;padding:10px;box-shadow:0 4px 20px rgba(0,0,0,0.5);width:200px;height:200px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(255,255,255,0.25);transition:opacity 0.3s}
+#plan-wrap svg{width:100%;height:100%}
+#plan-wrap.hidden{opacity:0.15}
+.room-shape{cursor:pointer;transition:filter 0.3s}
+.room-shape:hover{filter:brightness(0.85)}
+.room-shape.active{animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{filter:brightness(0.9)}50%{filter:brightness(1.15)}}
+.lbl{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.75);color:#fff;padding:8px 20px;border-radius:24px;font-size:14px;z-index:100;pointer-events:none;transition:opacity 0.3s}
+.lbl.hidden{opacity:0.15}
+@media(max-width:600px){#plan-wrap{width:150px;height:150px;bottom:8px;right:8px}.lbl{font-size:12px;padding:6px 16px}}
+</style>
+</head>
+<body>
+<div id="viewer"></div>
+<div class="lbl" id="lbl">Загрузка...</div>
+<div id="plan-wrap"></div>
+
+<script type="importmap">
+{
+    "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.min.js",
+        "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5/index.module.min.js"
+    }
+}
+` + `<` + `/script>
+
+<script type="module">
+import { Viewer } from '@photo-sphere-viewer/core';
+
+const ROOMS = ${roomsJson};
+if(!ROOMS||!ROOMS.length){document.getElementById("lbl").textContent="Нет панорам";}
+
+let current = ROOMS[0];
+let viewer = null;
+
+const svgBase64 = "${svgBase64}";
+try {
+    const binaryStr = atob(svgBase64);
+    const bytes = new Uint8Array(binaryStr.length);
+    for(let i=0;i<binaryStr.length;i++) bytes[i]=binaryStr.charCodeAt(i);
+    document.getElementById("plan-wrap").innerHTML = new TextDecoder().decode(bytes);
+} catch(e) {}
+
+function initViewer(room) {
+    if (viewer) {
+        try { viewer.destroy(); } catch(e) {}
+    }
+    
+    viewer = new Viewer({
+        container: document.getElementById('viewer'),
+        panorama: room.dataUrl,
+        navbar: ['zoom', 'fullscreen', 'caption', 'gyroscope', 'vr'],
+        caption: room.name,
+        defaultZoomLvl: 0,
+        minFov: 30,
+        maxFov: 110,
+        mousewheel: true,
+        mousemove: true,
+        moveSpeed: 1.5,
+        zoomSpeed: 1.2,
+        useXmpData: false,
+        panoData: {
+            fullWidth: room.width || 4096,
+            fullHeight: room.height || 2048,
+            croppedWidth: room.width || 4096,
+            croppedHeight: room.height || 2048,
+            croppedX: 0,
+            croppedY: 0,
+            poseHeading: 0,
+            posePitch: 0,
+            poseRoll: 0
+        }
+    });
+    
+    viewer.addEventListener('ready', () => {
+        document.getElementById("lbl").textContent = "📍 " + current.name;
+        updateActiveShape();
+        console.log('✅ VR ready — используйте кнопку VR в панели управления');
+    });
+    
+    viewer.addEventListener('fullscreen', (e) => {
+        const plan = document.getElementById('plan-wrap');
+        const lbl = document.getElementById('lbl');
+        if (e.fullscreen) {
+            plan.classList.add('hidden');
+            lbl.classList.add('hidden');
+        } else {
+            plan.classList.remove('hidden');
+            lbl.classList.remove('hidden');
+        }
+    });
+    
+    viewer.addEventListener('vr-state-change', (e) => {
+        if (e.vrEnabled) {
+            document.getElementById("lbl").textContent = "🥽 VR режим активен";
+            document.getElementById("lbl").style.background = 'rgba(139, 92, 246, 0.9)';
+        } else {
+            document.getElementById("lbl").textContent = "📍 " + current.name;
+            document.getElementById("lbl").style.background = 'rgba(0, 0, 0, 0.75)';
+        }
+    });
+}
+
+function updateActiveShape() {
+    const shapes = document.querySelectorAll(".room-shape");
+    for(let i=0;i<shapes.length;i++){
+        shapes[i].classList.remove("active");
+        if(parseInt(shapes[i].getAttribute("data-room"))===current.id) shapes[i].classList.add("active");
+    }
+}
+
+function switchRoom(room) {
+    if (!room || room.id === current.id) return;
+    current = room;
+    document.getElementById("lbl").textContent = "⏳ " + room.name;
+    try {
+        viewer.setPanorama(room.dataUrl, { 
+            caption: room.name, 
+            transition: true,
+            panoData: {
+                fullWidth: room.width || 4096,
+                fullHeight: room.height || 2048,
+                croppedWidth: room.width || 4096,
+                croppedHeight: room.height || 2048,
+                croppedX: 0,
+                croppedY: 0
+            }
+        });
+    } catch(e) {
+        initViewer(room);
+    }
+}
+
+setTimeout(() => {
+    initViewer(ROOMS[0]);
+    
+    setTimeout(() => {
+        const shapes = document.querySelectorAll(".room-shape");
+        for(let i=0;i<shapes.length;i++){
+            shapes[i].addEventListener("click", function(){
+                const id = parseInt(this.getAttribute("data-room"));
+                for(let j=0;j<ROOMS.length;j++){ 
+                    if(ROOMS[j].id===id){ switchRoom(ROOMS[j]); break; } 
+                }
+            });
+        }
+    }, 300);
+    
+    document.addEventListener("keydown", function(e){
+        if(!ROOMS.length) return;
+        let idx = -1;
+        for(let j=0;j<ROOMS.length;j++) {
+            if(ROOMS[j].id === current.id) { idx = j; break; }
+        }
+        if(e.key === "ArrowRight" || e.key === "ArrowDown") {
+            e.preventDefault();
+            switchRoom(ROOMS[(idx + 1) % ROOMS.length]);
+        } else if(e.key === "ArrowLeft" || e.key === "ArrowUp") {
+            e.preventDefault();
+            switchRoom(ROOMS[(idx - 1 + ROOMS.length) % ROOMS.length]);
+        }
+    });
+    
+}, 200);
+` + `<` + `/script>
+</body>
+</html>`;
+
+            progressFill.style.width = '100%';
+            await new Promise(r => setTimeout(r, 100));
+
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const downloadUrl = URL.createObjectURL(blob);
+            addBlobUrl(downloadUrl);
+            const a = document.createElement('a');
+            a.href = downloadUrl; a.download = 'vr_tour_360.html';
+            document.body.appendChild(a); a.click(); document.body.removeChild(a);
+            setTimeout(() => safeRevokeUrl(downloadUrl), 2000);
+
+            progressBar.style.display = 'none'; progressFill.style.width = '0%';
+            exportBtn.disabled = false; exportBtn.textContent = '🥽 Скачать VR тур';
+            toast('🥽 VR тур готов! ' + (blob.size / 1024 / 1024).toFixed(1) + 'MB');
+            
+        } catch (e) {
+            progressBar.style.display = 'none'; progressFill.style.width = '0%';
+            exportBtn.disabled = false; exportBtn.textContent = '🥽 Скачать VR тур';
+            console.error('Export error:', e); toast('❌ Ошибка: ' + e.message);
+        }
+    }
+
+    function initApp() {
+        initSvg();
+        initHitboxes();
+        deselectRoom();
+        scheduleRender('grid');
+        scheduleRender('pano');
+    }
+
+    exportBtn.addEventListener('click', exportTour);
+    clearBtn.addEventListener('click', clearAll);
+    deleteBtn.addEventListener('click', deleteSelectedRoom);
+    roomNameEl.addEventListener('input', debouncedSaveRoomSettings);
+    roomColorEl.addEventListener('input', debouncedSaveRoomSettings);
+    roomPanoEl.addEventListener('change', saveRoomSettings);
+
+    document.querySelectorAll('.color-preset').forEach(el => {
+        el.addEventListener('click', function() { roomColorEl.value = this.dataset.color; saveRoomSettings(); });
+    });
+
+    uploadZone.addEventListener('click', () => {
+        const inp = document.createElement('input');
+        inp.type = 'file'; inp.accept = 'image/jpeg,image/png'; inp.multiple = true;
+        inp.onchange = () => { [...inp.files].forEach(f => { const r = new FileReader(); r.onload = e => addPanorama(f, e.target.result); r.readAsDataURL(f); }); };
+        inp.click();
+    });
+
+    uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor = '#fa3'; });
+    uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor = '#ff8c42'; });
+    uploadZone.addEventListener('drop', e => {
+        e.preventDefault(); uploadZone.style.borderColor = '#ff8c42';
+        [...e.dataTransfer.files].filter(f => f.type.startsWith('image/')).forEach(f => {
+            const r = new FileReader(); r.onload = ev => addPanorama(f, ev.target.result); r.readAsDataURL(f);
+        });
+    });
+
+    gridWrapper.addEventListener('dragover', e => { e.preventDefault(); });
+    gridWrapper.addEventListener('drop', e => {
+        e.preventDefault();
+        const name = e.dataTransfer.getData('text/plain');
+        const pano = panoramas.find(p => p.name === name);
+        if (pano && selectedCells.length) createRoom(pano);
+        else if (pano) toast('⚠️ Сначала выделите область на плане');
+    });
+
+    initApp();
+    console.log('✅ Тур 360 v22 VR — Оптимизированная версия (управление памятью, throttle, параллельная конвертация)');
+})();
+</script>
+</body>
+</html>
