@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Тест гироскопа - Постоянная работа</title>
+    <title>Тест гироскопа - PSV 4</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.css">
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; touch-action: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
         #viewer { width: 100%; height: 100%; }
         #status {
             position: fixed;
@@ -29,61 +29,45 @@
     <div id="viewer"></div>
     <div id="status">🔄 Загрузка...</div>
     
+    <!-- PSV 4 не поддерживает ES modules, подключаем обычными скриптами -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.js"></script>
     
     <script>
         const statusDiv = document.getElementById('status');
         let viewer = null;
-        let gyroEnabled = false;
         
-        // Блокируем стандартное поведение касаний
-        document.body.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-        }, { passive: false });
-        
-        // Включаем гироскоп принудительно и постоянно
-        function forceGyroscope() {
-            if (viewer && viewer.plugins && viewer.plugins.gyroscope && !gyroEnabled) {
-                viewer.plugins.gyroscope.start();
-                gyroEnabled = true;
-                statusDiv.textContent = '🎯 Гироскоп активен! Поворачивай телефон';
-                console.log('Гироскоп принудительно включен');
-            }
-        }
-        
-        viewer = new PhotoSphereViewer.Viewer({
-            container: 'viewer',
-            panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
-            navbar: ['zoom', 'fullscreen', 'caption', 'gyroscope'],
-            caption: 'Панорама с гироскопом',
-            defaultZoomLvl: 0,
-            minFov: 30,
-            maxFov: 110,
-            mousewheel: true,
-            gyroscope: true,
-            touchmove: true  // разрешаем касания для вращения
-        });
-        
-        viewer.on('ready', () => {
-            statusDiv.textContent = '✅ Готово! Поворачивай телефон';
+        // Проверка загрузки библиотеки
+        if (typeof PhotoSphereViewer === 'undefined') {
+            statusDiv.textContent = '❌ Ошибка: библиотека не загрузилась';
+            statusDiv.style.color = '#ff4757';
+        } else {
+            statusDiv.textContent = '✅ Библиотека загружена';
             
-            // Включаем гироскоп сразу и постоянно
-            setInterval(() => {
-                forceGyroscope();
-            }, 1000);
-        });
-        
-        // При входе в полноэкранный режим - включаем гироскоп
-        document.addEventListener('fullscreenchange', () => {
-            if (document.fullscreenElement) {
-                setTimeout(forceGyroscope, 200);
-                statusDiv.textContent = '🎯 Полноэкранный режим, гироскоп активен';
-            }
-        });
-        
-        // Запускаем гироскоп каждые 2 секунды (на случай отключения)
-        setInterval(forceGyroscope, 2000);
+            viewer = new PhotoSphereViewer.Viewer({
+                container: 'viewer',
+                panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
+                navbar: ['zoom', 'fullscreen', 'caption', 'gyroscope'],
+                caption: 'Поверни телефон или нажми иконку телефона',
+                defaultZoomLvl: 0,
+                minFov: 30,
+                maxFov: 110,
+                mousewheel: true,
+                gyroscope: true
+            });
+            
+            viewer.on('ready', () => {
+                statusDiv.textContent = '✅ Готово! Нажми fullscreen → иконку телефона → поверни';
+                
+                // Автоматически включаем гироскоп через 2 секунды
+                setTimeout(() => {
+                    if (viewer.plugins && viewer.plugins.gyroscope) {
+                        viewer.plugins.gyroscope.start();
+                        statusDiv.textContent = '🎯 Гироскоп активирован! Поворачивай телефон';
+                    }
+                }, 2000);
+            });
+        }
     </script>
 </body>
 </html>
