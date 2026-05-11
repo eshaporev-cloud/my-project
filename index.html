@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Тест гироскопа - PSV 4</title>
+    <title>Тест гироскопа</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.css">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
@@ -29,37 +29,31 @@
     <div id="viewer"></div>
     <div id="status">🔄 Загрузка...</div>
     
-    <!-- Те же ссылки, что в твоём редакторе -->
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.js"></script>
     
     <script>
-        const statusDiv = document.getElementById('status');
-        
-        // Ждём загрузки скриптов
-        setTimeout(() => {
-            if (typeof PhotoSphereViewer === 'undefined') {
-                statusDiv.textContent = '❌ Ошибка: PhotoSphereViewer не загружен';
-                console.error('PhotoSphereViewer not defined');
-            } else {
-                statusDiv.textContent = '✅ Загружено!';
+        // Ждём реальной загрузки скрипта
+        function waitForPSV() {
+            if (typeof PhotoSphereViewer !== 'undefined') {
+                document.getElementById('status').textContent = '✅ Готово!';
                 
-                const viewer = new PhotoSphereViewer.Viewer({
+                new PhotoSphereViewer.Viewer({
                     container: 'viewer',
                     panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
-                    navbar: ['zoom', 'fullscreen', 'caption'],
-                    caption: 'Тест панорамы',
+                    navbar: ['zoom', 'fullscreen', 'caption', 'gyroscope'],
+                    caption: 'Поверни телефон',
                     defaultZoomLvl: 0,
                     minFov: 30,
                     maxFov: 110,
                     mousewheel: true
                 });
-                
-                viewer.on('ready', () => {
-                    statusDiv.textContent = '✅ Панорама загружена! Нажми fullscreen → иконку телефона';
-                });
+            } else {
+                setTimeout(waitForPSV, 100);
             }
-        }, 1000);
+        }
+        
+        waitForPSV();
     </script>
 </body>
 </html>
