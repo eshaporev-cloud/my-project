@@ -3,17 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>PSV 5.7.4 - Гироскоп Toggle (оптимизированный)</title>
+    <title>PSV 5.7.4 - Гироскоп с авто-перезапуском</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.7.4/index.min.css">
     <style>
-        * {
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
+        * { user-select: none; -webkit-tap-highlight-color: transparent; }
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; }
         #viewer { width: 100%; height: 100%; }
         
-        /* Статус бар */
         #status {
             position: fixed;
             top: 16px;
@@ -30,11 +26,8 @@
             pointer-events: none;
             white-space: nowrap;
             font-weight: 500;
-            letter-spacing: 0.3px;
-            transition: opacity 0.3s ease;
         }
         
-        /* Кнопка toggle */
         .gyro-toggle {
             position: fixed;
             bottom: 24px;
@@ -52,37 +45,14 @@
             z-index: 101;
             transition: all 0.2s ease;
             font-family: system-ui, sans-serif;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            pointer-events: auto;
-        }
-        .gyro-toggle:active {
-            transform: translateX(-50%) scale(0.96);
         }
         .gyro-toggle.active {
             background: #ff8c42;
             color: #1e1f2c;
             border-color: #ff8c42;
-            box-shadow: 0 0 12px rgba(255,140,66,0.4);
         }
+        .gyro-toggle:active { transform: translateX(-50%) scale(0.96); }
         
-        /* Прогресс-бар загрузки */
-        .progress-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: rgba(255,255,255,0.1);
-            z-index: 102;
-        }
-        .progress-fill {
-            width: 0%;
-            height: 100%;
-            background: #ff8c42;
-            transition: width 0.2s ease;
-        }
-        
-        /* Подсказка */
         .note {
             position: fixed;
             bottom: 90px;
@@ -108,10 +78,9 @@
 </head>
 <body>
     <div id="viewer"></div>
-    <div id="status">🔄 Загрузка панорамы...</div>
-    <div class="note">📱 Кнопка внизу — вкл/выкл гироскоп</div>
+    <div id="status">🔄 Загрузка...</div>
+    <div class="note">📱 Кнопка внизу — гироскоп | Касания экрана НЕ отключают</div>
     <button class="gyro-toggle" id="gyroToggle">🎯 Включить гироскоп</button>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 
     <script type="importmap">
         {
@@ -127,26 +96,27 @@
         import { Viewer } from '@photo-sphere-viewer/core';
         import { GyroscopePlugin } from '@photo-sphere-viewer/gyroscope-plugin';
         
-        // DOM элементы
         const statusDiv = document.getElementById('status');
         const toggleBtn = document.getElementById('gyroToggle');
-        const progressFill = document.getElementById('progressFill');
         
-        // Состояние
         let viewer = null;
         let gyroPlugin = null;
         let gyroActive = false;
-        let isLoading = true;
+        let isReady = false;
         
-        // Функция обновления статуса
-        function updateStatus(text, isError = false) {
-            statusDiv.textContent = text;
-            statusDiv.style.color = isError ? '#ff4757' : (gyroActive ? '#2ecc71' : '#ff8c42');
-        }
-        
-        // Обновление прогресса загрузки
-        function updateProgress(percent) {
-            progressFill.style.width = percent + '%';
+        // Перезапуск гироскопа (чиним касания)
+        function restartGyroscope() {
+            if (!gyroPlugin || !gyroActive) return;
+            try {
+                // Останавливаем и сразу запускаем снова
+                gyroPlugin.stop();
+                setTimeout(() => {
+                    gyroPlugin.start();
+                    console.log('🔄 Гироскоп перезапущен после касания');
+                }, 10);
+            } catch(e) {
+                console.warn('Ошибка перезапуска:', e);
+            }
         }
         
         // Включение гироскопа
@@ -157,11 +127,11 @@
                 gyroActive = true;
                 toggleBtn.textContent = '🔴 Выключить гироскоп';
                 toggleBtn.classList.add('active');
-                updateStatus('🎯 Гироскоп ВКЛЮЧЕН | Поворачивай телефон');
+                statusDiv.textContent = '🎯 Гироскоп ВКЛЮЧЕН | Поворачивай телефон';
+                statusDiv.style.color = '#2ecc71';
                 console.log('✅ Гироскоп включен');
             } catch(e) {
-                console.error('Ошибка включения гироскопа:', e);
-                updateStatus('❌ Ошибка включения гироскопа', true);
+                console.error('Ошибка включения:', e);
             }
         }
         
@@ -173,19 +143,17 @@
                 gyroActive = false;
                 toggleBtn.textContent = '🎯 Включить гироскоп';
                 toggleBtn.classList.remove('active');
-                updateStatus('⭕ Гироскоп ВЫКЛЮЧЕН | Вращай пальцем');
+                statusDiv.textContent = '⭕ Гироскоп ВЫКЛЮЧЕН | Вращай пальцем';
+                statusDiv.style.color = '#ff8c42';
                 console.log('⭕ Гироскоп выключен');
             } catch(e) {
-                console.error('Ошибка выключения гироскопа:', e);
+                console.error('Ошибка выключения:', e);
             }
         }
         
         // Toggle
         function toggleGyroscope() {
-            if (isLoading) {
-                updateStatus('⏳ Подожди, панорама загружается...');
-                return;
-            }
+            if (!isReady) return;
             if (gyroActive) {
                 disableGyroscope();
             } else {
@@ -193,30 +161,26 @@
             }
         }
         
-        // Отображение значений гироскопа (оптимизировано)
-        let lastUpdate = 0;
-        window.addEventListener('deviceorientation', (e) => {
-            const now = Date.now();
-            if (now - lastUpdate > 100) { // обновляем не чаще 10 раз в секунду
-                lastUpdate = now;
-                const alpha = Math.round(e.alpha);
-                const beta = Math.round(e.beta);
-                const gamma = Math.round(e.gamma);
-                
-                if (gyroActive) {
-                    statusDiv.innerHTML = `🎯 ${alpha}° / ${beta}° / ${gamma}°<br>🟢 Гироскоп активен`;
-                } else if (!isLoading) {
-                    statusDiv.innerHTML = `⭕ ${alpha}° / ${beta}° / ${gamma}°<br>⚫ Гироскоп выключен`;
-                }
+        // Глобальный обработчик касаний — перезапускаем гироскоп если он активен
+        function onTouchStart() {
+            if (gyroActive && isReady) {
+                console.log('👆 Касание экрана — перезапуск гироскопа');
+                statusDiv.textContent = '🔄 Гироскоп перезапускается...';
+                setTimeout(() => {
+                    restartGyroscope();
+                    if (gyroActive) {
+                        statusDiv.textContent = '🎯 Гироскоп активен | Поворачивай телефон';
+                    }
+                }, 50);
             }
-        });
+        }
         
         // Инициализация просмотрщика
         viewer = new Viewer({
             container: 'viewer',
             panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
             navbar: ['zoom', 'fullscreen', 'caption'],
-            caption: 'Нажми кнопку внизу для включения гироскопа',
+            caption: 'Гироскоп не отключается при касаниях',
             plugins: [
                 [GyroscopePlugin, {
                     absolutePosition: true,
@@ -226,51 +190,42 @@
             ]
         });
         
-        // Прогресс загрузки
-        viewer.addEventListener('load-progress', (e) => {
-            updateProgress(e.progress);
-        });
-        
         viewer.addEventListener('ready', () => {
-            isLoading = false;
-            updateProgress(100);
-            setTimeout(() => {
-                const bar = document.querySelector('.progress-bar');
-                if (bar) bar.style.opacity = '0';
-            }, 500);
-            
+            isReady = true;
             gyroPlugin = viewer.getPlugin(GyroscopePlugin);
             
             if (gyroPlugin) {
-                updateStatus('✅ Панорама загружена | Нажми кнопку внизу');
-                toggleBtn.style.pointerEvents = 'auto';
+                statusDiv.textContent = '✅ Панорама готова | Нажми кнопку внизу';
                 console.log('✅ Плагин гироскопа найден');
+                
+                // Добавляем обработчик касаний для перезапуска
+                document.body.addEventListener('touchstart', onTouchStart, { passive: false });
+                document.body.addEventListener('mousedown', onTouchStart);
             } else {
-                updateStatus('❌ Ошибка: плагин гироскопа не загружен', true);
+                statusDiv.textContent = '❌ Ошибка: плагин не загружен';
+                statusDiv.style.color = '#ff4757';
                 toggleBtn.style.opacity = '0.5';
                 toggleBtn.style.pointerEvents = 'none';
             }
         });
         
-        // Обработчик кнопки
         toggleBtn.addEventListener('click', toggleGyroscope);
         
-        // При входе в полноэкранный режим
-        document.addEventListener('fullscreenchange', () => {
-            if (document.fullscreenElement) {
-                updateStatus(gyroActive ? '🎯 Полноэкранный режим | Гироскоп активен' : '⛶ Полноэкранный режим | Нажми кнопку');
-                setTimeout(() => {
-                    if (!gyroActive) statusDiv.style.opacity = '0.6';
-                }, 2000);
+        // Отображение значений гироскопа
+        window.addEventListener('deviceorientation', (e) => {
+            if (!isReady) return;
+            const alpha = Math.round(e.alpha);
+            const beta = Math.round(e.beta);
+            const gamma = Math.round(e.gamma);
+            
+            if (gyroActive) {
+                statusDiv.innerHTML = `🎯 ${alpha}° ${beta}° ${gamma}°<br>🟢 Гироскоп активен`;
             } else {
-                statusDiv.style.opacity = '1';
+                statusDiv.innerHTML = `⭕ ${alpha}° ${beta}° ${gamma}°<br>⚫ Гироскоп выключен`;
             }
         });
         
-        // Блокировка случайных касаний на кнопку во время загрузки
-        toggleBtn.style.pointerEvents = 'none';
-        
-        console.log('🚀 Тестовый файл загружен, ожидаем готовности панорамы');
+        console.log('🚀 Тестовый файл загружен');
     </script>
 </body>
 </html>
