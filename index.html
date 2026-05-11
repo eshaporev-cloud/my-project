@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>PSV 5.7.4 - Финальный тест гироскопа</title>
+    <title>PSV 5.7.4 - Гироскоп с кнопкой Toggle</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.7.4/index.min.css">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
@@ -22,27 +22,56 @@
             z-index: 100;
             pointer-events: none;
             white-space: nowrap;
-            text-align: center;
+        }
+        .gyro-toggle {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            padding: 12px 24px;
+            border-radius: 40px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            z-index: 101;
+            transition: all 0.3s ease;
+            font-family: system-ui, sans-serif;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        .gyro-toggle.active {
+            background: #ff8c42;
+            color: #1e1f2c;
+            border-color: #ff8c42;
+        }
+        .gyro-toggle.inactive {
+            background: rgba(0,0,0,0.6);
+            color: #ccc;
         }
         .note {
             position: fixed;
-            bottom: 20px;
+            bottom: 100px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.5);
-            color: white;
+            color: #aaa;
             padding: 4px 8px;
             border-radius: 8px;
             font-size: 11px;
             z-index: 100;
             pointer-events: none;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
     <div id="viewer"></div>
     <div id="status">🔄 Загрузка...</div>
-    <div class="note">⚠️ Не касайся экрана после запуска (чтобы не активировать ручной режим)</div>
+    <div class="note">📱 Кнопка внизу — включить/выключить гироскоп</div>
+    <button class="gyro-toggle inactive" id="gyroToggle">🎯 Включить гироскоп</button>
 
     <script type="importmap">
         {
@@ -59,46 +88,105 @@
         import { GyroscopePlugin } from '@photo-sphere-viewer/gyroscope-plugin';
         
         const statusDiv = document.getElementById('status');
+        const toggleBtn = document.getElementById('gyroToggle');
+        let viewer = null;
+        let gyroPlugin = null;
+        let gyroActive = false;
         
-        // Выводим значения для отладки
+        // Функция включения гироскопа
+        function enableGyroscope() {
+            if (gyroPlugin && !gyroActive) {
+                gyroPlugin.start();
+                gyroActive = true;
+                toggleBtn.textContent = '🔴 Выключить гироскоп';
+                toggleBtn.classList.add('active');
+                toggleBtn.classList.remove('inactive');
+                statusDiv.textContent = '🎯 Гироскоп ВКЛЮЧЕН | Поворачивай телефон';
+                statusDiv.style.color = '#2ecc71';
+                console.log('✅ Гироскоп включен');
+            }
+        }
+        
+        // Функция выключения гироскопа
+        function disableGyroscope() {
+            if (gyroPlugin && gyroActive) {
+                gyroPlugin.stop();
+                gyroActive = false;
+                toggleBtn.textContent = '🎯 Включить гироскоп';
+                toggleBtn.classList.remove('active');
+                toggleBtn.classList.add('inactive');
+                statusDiv.textContent = '⭕ Гироскоп ВЫКЛЮЧЕН | Вращай пальцем';
+                statusDiv.style.color = '#ff8c42';
+                console.log('⭕ Гироскоп выключен');
+            }
+        }
+        
+        // Toggle функция
+        function toggleGyroscope() {
+            if (gyroActive) {
+                disableGyroscope();
+            } else {
+                enableGyroscope();
+            }
+        }
+        
+        // Отображение значений гироскопа (для информации)
         window.addEventListener('deviceorientation', (e) => {
-            statusDiv.innerHTML = `🎯 α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}<br>👆 Не касайся экрана!`;
+            if (gyroActive) {
+                // Обновляем статус только если гироскоп активен
+                statusDiv.innerHTML = `🎯 α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}<br>🟢 Гироскоп активен`;
+            } else {
+                statusDiv.innerHTML = `⭕ Гироскоп выключен<br>α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}`;
+            }
         });
         
-        const viewer = new Viewer({
+        // Инициализация просмотрщика
+        viewer = new Viewer({
             container: 'viewer',
             panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
             navbar: ['zoom', 'fullscreen', 'caption'],
-            caption: 'Гироскоп активирован — крути телефон!',
+            caption: 'Нажми кнопку внизу для включения гироскопа',
             plugins: [
                 [GyroscopePlugin, {
-                    // Абсолютное позиционирование обязательно для вращения
-                    absolutePosition: true,   
-                    // Отключаем ручное управление — иначе касание убивает гироскоп
-                    touchmove: false,         
-                    // Быстрый режим для Android
-                    moveMode: 'fast'          
+                    absolutePosition: true,
+                    touchmove: false,
+                    moveMode: 'fast'
                 }]
             ]
         });
         
         viewer.addEventListener('ready', () => {
-            console.log('✅ Viewer готов, гироскоп активирован');
-            statusDiv.style.color = '#2ecc71';
-            statusDiv.innerHTML = '✅ Готово! Крути телефон<br>(только не касайся экрана)';
+            console.log('✅ Viewer готов');
+            
+            // Получаем плагин гироскопа
+            gyroPlugin = viewer.getPlugin(GyroscopePlugin);
+            
+            if (gyroPlugin) {
+                console.log('✅ Плагин гироскопа найден');
+                statusDiv.textContent = '✅ Панорама загружена | Нажми кнопку внизу';
+                
+                // Добавляем обработчик на кнопку
+                toggleBtn.addEventListener('click', toggleGyroscope);
+                
+                // Показываем кнопку
+                toggleBtn.style.display = 'block';
+            } else {
+                console.error('❌ Плагин гироскопа не найден');
+                statusDiv.textContent = '❌ Ошибка: плагин гироскопа не загружен';
+                toggleBtn.style.display = 'none';
+            }
         });
         
-        // Дополнительная страховка: если пользователь коснулся экрана, принудительно перезапускаем гироскоп через 2 секунды
-        document.body.addEventListener('touchstart', () => {
-            statusDiv.innerHTML = '⚠️ Касание экрана — отключаю ручной режим...';
-            setTimeout(() => {
-                const gyro = viewer.getPlugin(GyroscopePlugin);
-                if (gyro) {
-                    gyro.stop();
-                    gyro.start();
-                    statusDiv.innerHTML = '✅ Гироскоп перезапущен!';
-                }
-            }, 100);
+        // При входе в полноэкранный режим показываем подсказку
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                statusDiv.textContent = gyroActive ? '🎯 Гироскоп активен | Поворачивай телефон' : '⭕ Гироскоп выключен | Нажми кнопку';
+                setTimeout(() => {
+                    statusDiv.style.opacity = '0.7';
+                }, 3000);
+            } else {
+                statusDiv.style.opacity = '1';
+            }
         });
     </script>
 </body>
