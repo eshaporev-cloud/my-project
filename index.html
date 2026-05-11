@@ -3,77 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Тест гироскопа PSV - Android</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.0/index.min.css">
+    <title>Тест гироскопа - Постоянная работа</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.css">
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; touch-action: none; }
         #viewer { width: 100%; height: 100%; }
         #status {
             position: fixed;
-            top: 20px;
+            bottom: 80px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.7);
-            color: white;
+            color: #ff8c42;
             padding: 8px 16px;
             border-radius: 20px;
             font-family: monospace;
             font-size: 12px;
             z-index: 100;
             pointer-events: none;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
     <div id="viewer"></div>
-    <div id="status">Загрузка...</div>
+    <div id="status">🔄 Загрузка...</div>
     
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.min.js",
-                "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.0/index.module.min.js",
-                "@photo-sphere-viewer/gyroscope-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/gyroscope-plugin@5.11.0/index.module.min.js"
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.js"></script>
+    
+    <script>
+        const statusDiv = document.getElementById('status');
+        let viewer = null;
+        let gyroEnabled = false;
+        
+        // Блокируем стандартное поведение касаний
+        document.body.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+        }, { passive: false });
+        
+        // Включаем гироскоп принудительно и постоянно
+        function forceGyroscope() {
+            if (viewer && viewer.plugins && viewer.plugins.gyroscope && !gyroEnabled) {
+                viewer.plugins.gyroscope.start();
+                gyroEnabled = true;
+                statusDiv.textContent = '🎯 Гироскоп активен! Поворачивай телефон';
+                console.log('Гироскоп принудительно включен');
             }
         }
-    </script>
-    
-    <script type="module">
-        import { Viewer } from '@photo-sphere-viewer/core';
-        import { GyroscopePlugin } from '@photo-sphere-viewer/gyroscope-plugin';
         
-        const statusDiv = document.getElementById('status');
-        
-        // Проверка гироскопа
-        window.addEventListener('deviceorientation', (e) => {
-            statusDiv.textContent = `🎯 α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}`;
-        });
-        
-        const viewer = new Viewer({
+        viewer = new PhotoSphereViewer.Viewer({
             container: 'viewer',
             panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
-            navbar: ['zoom', 'fullscreen', 'caption'],
-            caption: 'Тест гироскопа',
-            plugins: [
-                [GyroscopePlugin, { 
-                    absolutePosition: true,
-                    moveMode: 'smooth',
-                    smoothFn: (x) => x // плавность
-                }]
-            ]
+            navbar: ['zoom', 'fullscreen', 'caption', 'gyroscope'],
+            caption: 'Панорама с гироскопом',
+            defaultZoomLvl: 0,
+            minFov: 30,
+            maxFov: 110,
+            mousewheel: true,
+            gyroscope: true,
+            touchmove: true  // разрешаем касания для вращения
         });
         
-        viewer.addEventListener('ready', () => {
-            statusDiv.textContent = '✅ Viewer готов, гироскоп должен работать';
-            // Принудительно запускаем плагин
-            const gyroPlugin = viewer.getPlugin(GyroscopePlugin);
-            if (gyroPlugin) {
-                gyroPlugin.start();
-                statusDiv.textContent = '✅ Гироскоп запущен! Поверни телефон';
-            } else {
-                statusDiv.textContent = '❌ Плагин гироскопа не найден';
+        viewer.on('ready', () => {
+            statusDiv.textContent = '✅ Готово! Поворачивай телефон';
+            
+            // Включаем гироскоп сразу и постоянно
+            setInterval(() => {
+                forceGyroscope();
+            }, 1000);
+        });
+        
+        // При входе в полноэкранный режим - включаем гироскоп
+        document.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                setTimeout(forceGyroscope, 200);
+                statusDiv.textContent = '🎯 Полноэкранный режим, гироскоп активен';
             }
         });
+        
+        // Запускаем гироскоп каждые 2 секунды (на случай отключения)
+        setInterval(forceGyroscope, 2000);
     </script>
 </body>
 </html>
