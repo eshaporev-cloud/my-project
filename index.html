@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Тест гироскопа - PSV 4</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.css">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
         #viewer { width: 100%; height: 100%; }
@@ -22,62 +23,43 @@
             pointer-events: none;
             white-space: nowrap;
         }
-        .error {
-            color: #ff4757 !important;
-        }
     </style>
 </head>
 <body>
     <div id="viewer"></div>
-    <div id="status">🔄 Загрузка библиотек...</div>
+    <div id="status">🔄 Загрузка...</div>
     
-    <!-- Используем unpkg вместо jsdelivr -->
-    <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
-    <script src="https://unpkg.com/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.js"></script>
+    <!-- Те же ссылки, что в твоём редакторе -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.js"></script>
     
     <script>
         const statusDiv = document.getElementById('status');
-        let viewer = null;
         
-        // Проверка загрузки через таймер
+        // Ждём загрузки скриптов
         setTimeout(() => {
             if (typeof PhotoSphereViewer === 'undefined') {
-                statusDiv.textContent = '❌ Библиотека не загрузилась. Проверь интернет.';
-                statusDiv.classList.add('error');
+                statusDiv.textContent = '❌ Ошибка: PhotoSphereViewer не загружен';
+                console.error('PhotoSphereViewer not defined');
             } else {
-                statusDiv.textContent = '✅ Библиотека загружена! Создаём панораму...';
+                statusDiv.textContent = '✅ Загружено!';
                 
-                try {
-                    viewer = new PhotoSphereViewer.Viewer({
-                        container: 'viewer',
-                        panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
-                        navbar: ['zoom', 'fullscreen', 'caption', 'gyroscope'],
-                        caption: 'Поверни телефон',
-                        defaultZoomLvl: 0,
-                        minFov: 30,
-                        maxFov: 110,
-                        mousewheel: true,
-                        gyroscope: true
-                    });
-                    
-                    viewer.on('ready', () => {
-                        statusDiv.textContent = '✅ Готово! Нажми fullscreen → иконку телефона → поверни';
-                        statusDiv.classList.remove('error');
-                        
-                        // Автовключение гироскопа
-                        setTimeout(() => {
-                            if (viewer.plugins && viewer.plugins.gyroscope) {
-                                viewer.plugins.gyroscope.start();
-                                statusDiv.textContent = '🎯 Гироскоп активен! Поворачивай телефон';
-                            }
-                        }, 2000);
-                    });
-                } catch(e) {
-                    statusDiv.textContent = '❌ Ошибка: ' + e.message;
-                    statusDiv.classList.add('error');
-                }
+                const viewer = new PhotoSphereViewer.Viewer({
+                    container: 'viewer',
+                    panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
+                    navbar: ['zoom', 'fullscreen', 'caption'],
+                    caption: 'Тест панорамы',
+                    defaultZoomLvl: 0,
+                    minFov: 30,
+                    maxFov: 110,
+                    mousewheel: true
+                });
+                
+                viewer.on('ready', () => {
+                    statusDiv.textContent = '✅ Панорама загружена! Нажми fullscreen → иконку телефона';
+                });
             }
-        }, 3000);
+        }, 1000);
     </script>
 </body>
 </html>
