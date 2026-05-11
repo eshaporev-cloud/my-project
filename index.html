@@ -51,23 +51,24 @@
             statusDiv.textContent = '❌ Гироскоп НЕ поддерживается';
         }
         
-        // Слушаем события гироскопа
+        // Слушаем события гироскопа для отладки
         window.addEventListener('deviceorientation', (e) => {
             console.log('Гироскоп:', e.alpha, e.beta, e.gamma);
             statusDiv.textContent = `🎯 α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}`;
         });
         
+        // Создаём панораму СРАЗУ с плагином гироскопа
         const viewer = new Viewer({
             container: 'viewer',
             panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
             navbar: ['zoom', 'fullscreen', 'caption'],
-            caption: 'Тест гироскопа'
+            caption: 'Тест гироскопа',
+            plugins: [
+                [GyroscopePlugin, { absolutePosition: true }]
+            ]
         });
         
         viewer.addEventListener('ready', () => {
-            statusDiv.textContent = '✅ Viewer готов, добавляем гироскоп...';
-            // Добавляем плагин гироскопа
-            viewer.addPlugin(GyroscopePlugin, { absolutePosition: true });
             statusDiv.textContent = '✅ Гироскоп активирован! Поверни телефон';
         });
     </script>
