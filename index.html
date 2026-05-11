@@ -44,32 +44,35 @@
         
         const statusDiv = document.getElementById('status');
         
-        // Проверка поддержки гироскопа
-        if ('ondeviceorientation' in window) {
-            statusDiv.textContent = '✅ Гироскоп поддерживается';
-        } else {
-            statusDiv.textContent = '❌ Гироскоп НЕ поддерживается';
-        }
-        
-        // Слушаем события гироскопа для отладки
+        // Проверка гироскопа
         window.addEventListener('deviceorientation', (e) => {
-            console.log('Гироскоп:', e.alpha, e.beta, e.gamma);
             statusDiv.textContent = `🎯 α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}`;
         });
         
-        // Создаём панораму СРАЗУ с плагином гироскопа
         const viewer = new Viewer({
             container: 'viewer',
             panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
             navbar: ['zoom', 'fullscreen', 'caption'],
             caption: 'Тест гироскопа',
             plugins: [
-                [GyroscopePlugin, { absolutePosition: true }]
+                [GyroscopePlugin, { 
+                    absolutePosition: true,
+                    moveMode: 'smooth',
+                    smoothFn: (x) => x // плавность
+                }]
             ]
         });
         
         viewer.addEventListener('ready', () => {
-            statusDiv.textContent = '✅ Гироскоп активирован! Поверни телефон';
+            statusDiv.textContent = '✅ Viewer готов, гироскоп должен работать';
+            // Принудительно запускаем плагин
+            const gyroPlugin = viewer.getPlugin(GyroscopePlugin);
+            if (gyroPlugin) {
+                gyroPlugin.start();
+                statusDiv.textContent = '✅ Гироскоп запущен! Поверни телефон';
+            } else {
+                statusDiv.textContent = '❌ Плагин гироскопа не найден';
+            }
         });
     </script>
 </body>
