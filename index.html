@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Тест гироскопа PSV</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@5.11.0/index.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.0/index.min.css">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
         #viewer { width: 100%; height: 100%; }
@@ -16,14 +16,16 @@
         {
             "imports": {
                 "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.min.js",
-                "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@5.11.0/index.module.min.js",
-                "@photo-sphere-viewer/gyroscope-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@5.11.0/plugins/gyroscope/index.module.min.js"
+                "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.0/index.module.min.js",
+                "@photo-sphere-viewer/gyroscope-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/gyroscope-plugin@5.11.0/index.module.min.js"
             }
         }
     </script>
     <script type="module">
         import { Viewer } from '@photo-sphere-viewer/core';
         import { GyroscopePlugin } from '@photo-sphere-viewer/gyroscope-plugin';
+        
+        console.log('Плагин загружен:', GyroscopePlugin);
         
         const viewer = new Viewer({
             container: 'viewer',
@@ -33,7 +35,9 @@
             plugins: [[GyroscopePlugin, { absolutePosition: true }]]
         });
         
-        console.log('Viewer создан, гироскоп активирован');
+        viewer.addEventListener('ready', () => {
+            console.log('Viewer готов');
+        });
     </script>
 </body>
 </html>
