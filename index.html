@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Тест гироскопа PSV 5.7.4</title>
-    <!-- Правильная ссылка на CSS -->
+    <title>PSV 5.7.4 - Финальный тест гироскопа</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.7.4/index.min.css">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
         #viewer { width: 100%; height: 100%; }
         #status {
             position: fixed;
-            bottom: 80px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.7);
@@ -23,12 +22,27 @@
             z-index: 100;
             pointer-events: none;
             white-space: nowrap;
+            text-align: center;
+        }
+        .note {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.5);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            z-index: 100;
+            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div id="viewer"></div>
-    <div id="status">Загрузка...</div>
+    <div id="status">🔄 Загрузка...</div>
+    <div class="note">⚠️ Не касайся экрана после запуска (чтобы не активировать ручной режим)</div>
 
     <script type="importmap">
         {
@@ -46,26 +60,45 @@
         
         const statusDiv = document.getElementById('status');
         
-        // Отладка гироскопа
+        // Выводим значения для отладки
         window.addEventListener('deviceorientation', (e) => {
-            statusDiv.textContent = `🎯 α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}`;
+            statusDiv.innerHTML = `🎯 α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}<br>👆 Не касайся экрана!`;
         });
         
         const viewer = new Viewer({
             container: 'viewer',
             panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
             navbar: ['zoom', 'fullscreen', 'caption'],
-            caption: 'Тест гироскопа',
+            caption: 'Гироскоп активирован — крути телефон!',
             plugins: [
                 [GyroscopePlugin, {
-                    absolutePosition: true,
-                    touchmove: false  // отключаем ручное управление
+                    // Абсолютное позиционирование обязательно для вращения
+                    absolutePosition: true,   
+                    // Отключаем ручное управление — иначе касание убивает гироскоп
+                    touchmove: false,         
+                    // Быстрый режим для Android
+                    moveMode: 'fast'          
                 }]
             ]
         });
         
         viewer.addEventListener('ready', () => {
-            statusDiv.textContent = '✅ Поворачивай телефон!';
+            console.log('✅ Viewer готов, гироскоп активирован');
+            statusDiv.style.color = '#2ecc71';
+            statusDiv.innerHTML = '✅ Готово! Крути телефон<br>(только не касайся экрана)';
+        });
+        
+        // Дополнительная страховка: если пользователь коснулся экрана, принудительно перезапускаем гироскоп через 2 секунды
+        document.body.addEventListener('touchstart', () => {
+            statusDiv.innerHTML = '⚠️ Касание экрана — отключаю ручной режим...';
+            setTimeout(() => {
+                const gyro = viewer.getPlugin(GyroscopePlugin);
+                if (gyro) {
+                    gyro.stop();
+                    gyro.start();
+                    statusDiv.innerHTML = '✅ Гироскоп перезапущен!';
+                }
+            }, 100);
         });
     </script>
 </body>
