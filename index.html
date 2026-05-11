@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Тест гироскопа</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.css">
+    <title>Тест гироскопа PSV 5.11.0 - Исправленный</title>
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
         #viewer { width: 100%; height: 100%; }
@@ -27,33 +26,48 @@
 </head>
 <body>
     <div id="viewer"></div>
-    <div id="status">🔄 Загрузка...</div>
-    
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer@4.7.3/dist/photo-sphere-viewer.min.js"></script>
-    
-    <script>
-        // Ждём реальной загрузки скрипта
-        function waitForPSV() {
-            if (typeof PhotoSphereViewer !== 'undefined') {
-                document.getElementById('status').textContent = '✅ Готово!';
-                
-                new PhotoSphereViewer.Viewer({
-                    container: 'viewer',
-                    panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
-                    navbar: ['zoom', 'fullscreen', 'caption', 'gyroscope'],
-                    caption: 'Поверни телефон',
-                    defaultZoomLvl: 0,
-                    minFov: 30,
-                    maxFov: 110,
-                    mousewheel: true
-                });
-            } else {
-                setTimeout(waitForPSV, 100);
+    <div id="status">Загрузка...</div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.min.js",
+                "@photo-sphere-viewer/core": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.0/index.module.min.js",
+                "@photo-sphere-viewer/gyroscope-plugin": "https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/gyroscope-plugin@5.11.0/index.module.min.js"
             }
         }
+    </script>
+
+    <script type="module">
+        import { Viewer } from '@photo-sphere-viewer/core';
+        import { GyroscopePlugin } from '@photo-sphere-viewer/gyroscope-plugin';
         
-        waitForPSV();
+        const statusDiv = document.getElementById('status');
+        
+        // Отладка гироскопа
+        window.addEventListener('deviceorientation', (e) => {
+            console.log(`α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}`);
+            statusDiv.textContent = `🎯 α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}`;
+        });
+        
+        const viewer = new Viewer({
+            container: 'viewer',
+            panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
+            navbar: ['zoom', 'fullscreen', 'caption'],
+            caption: 'Тест гироскопа - PSV 5.11.0',
+            plugins: [
+                [GyroscopePlugin, {
+                    absolutePosition: true,  // абсолютное позиционирование
+                    moveMode: 'fast',        // быстрый режим для Android
+                    touchmove: false         // ← КЛЮЧЕВОЙ ПАРАМЕТР — отключаем ручное управление
+                }]
+            ]
+        });
+        
+        viewer.addEventListener('ready', () => {
+            statusDiv.textContent = '✅ Готово! Поворачивай телефон';
+            console.log('Viewer готов, гироскоп активирован');
+        });
     </script>
 </body>
 </html>
