@@ -3,15 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Тест гироскопа PSV</title>
+    <title>Тест гироскопа PSV - Android</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@photo-sphere-viewer/core@5.11.0/index.min.css">
     <style>
         body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
         #viewer { width: 100%; height: 100%; }
+        #status {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-family: monospace;
+            font-size: 12px;
+            z-index: 100;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div id="viewer"></div>
+    <div id="status">Загрузка...</div>
+    
     <script type="importmap">
         {
             "imports": {
@@ -21,23 +37,38 @@
             }
         }
     </script>
+    
     <script type="module">
         import { Viewer } from '@photo-sphere-viewer/core';
         import { GyroscopePlugin } from '@photo-sphere-viewer/gyroscope-plugin';
         
-        console.log('Плагин загружен:', !!GyroscopePlugin);
+        const statusDiv = document.getElementById('status');
+        
+        // Проверка поддержки гироскопа
+        if ('ondeviceorientation' in window) {
+            statusDiv.textContent = '✅ Гироскоп поддерживается';
+        } else {
+            statusDiv.textContent = '❌ Гироскоп НЕ поддерживается';
+        }
+        
+        // Слушаем события гироскопа
+        window.addEventListener('deviceorientation', (e) => {
+            console.log('Гироскоп:', e.alpha, e.beta, e.gamma);
+            statusDiv.textContent = `🎯 α:${Math.round(e.alpha)} β:${Math.round(e.beta)} γ:${Math.round(e.gamma)}`;
+        });
         
         const viewer = new Viewer({
             container: 'viewer',
             panorama: 'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/textures/planets/earth_atmos_2048.jpg',
             navbar: ['zoom', 'fullscreen', 'caption'],
-            caption: 'Тест панорама',
-            plugins: [[GyroscopePlugin, { absolutePosition: true }]]
+            caption: 'Тест гироскопа'
         });
         
         viewer.addEventListener('ready', () => {
-            console.log('Viewer готов, гироскоп активирован');
-            document.body.style.background = 'green';
+            statusDiv.textContent = '✅ Viewer готов, добавляем гироскоп...';
+            // Добавляем плагин гироскопа
+            viewer.addPlugin(GyroscopePlugin, { absolutePosition: true });
+            statusDiv.textContent = '✅ Гироскоп активирован! Поверни телефон';
         });
     </script>
 </body>
